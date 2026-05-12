@@ -74,6 +74,11 @@ class RAMwatcher {
             let usedSwapGiB = Math.round((data.swapused/1073742000)*10)/10;
             document.getElementById("mod_ramwatcher_swaptext").innerText = `${usedSwapGiB} GiB`;
 
+            if (window.alertManager) {
+                let usedPct = Math.round((data.active / data.total) * 100);
+                window.alertManager.check("RAM", usedPct);
+            }
+
             this.currentlyUpdating = false;
         });
     }

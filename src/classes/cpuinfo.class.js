@@ -128,6 +128,8 @@ class Cpuinfo {
 
             if (!data.cpus) return; // Prevent memleak in rare case where systeminformation takes extra time to retrieve CPU info (see github issue #216)
 
+            let allLoads = data.cpus.map(e => e.load);
+
             data.cpus.forEach((e, i) => {
                 this.series[i].append(new Date().getTime(), e.load);
 
@@ -146,6 +148,12 @@ class Cpuinfo {
                     // Fail silently, DOM element is probably getting refreshed (new theme, etc)
                 }
             });
+
+            if (window.alertManager) {
+                let overallAvg = Math.round(allLoads.reduce((a, b) => a + b, 0) / allLoads.length);
+                window.alertManager.check("CPU", overallAvg);
+            }
+
             this.updatingCPUload = false;
         });
     }
@@ -155,6 +163,9 @@ class Cpuinfo {
                 document.getElementById("mod_cpuinfo_temp").innerText = `${data.max}°C`;
             } catch(e) {
                 // See above notice
+            }
+            if (window.alertManager && typeof data.max === "number" && data.max > 0) {
+                window.alertManager.check("TEMP", data.max);
             }
         });
     }

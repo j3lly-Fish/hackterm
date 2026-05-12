@@ -309,8 +309,8 @@ class FilesystemDisplay {
                 let hidden = e.hidden ? " hidden" : "";
 
                 let cmdPrefix = `if (window.keyboard.container.dataset.isCtrlOn == "true") {
-                                electron.shell.openPath(fsDisp.cwd[${blockIndex}].path);
-                                electronWin.minimize();
+                                window.edex.shell.openPath(fsDisp.cwd[${blockIndex}].path);
+                                window.edex.win.minimize();
                             } else if (window.keyboard.container.dataset.isShiftOn == "true") {
                                 window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"");
                             } else {

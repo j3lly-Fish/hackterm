@@ -205,6 +205,57 @@ div.modal_popup summary+table {
 
 /* Settings editor modal */
 
+#settingsEditorWrapper {
+    width: 100%;
+}
+
+ul.settings_tabs {
+    list-style: none;
+    margin: 0 0 1.2vh 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    border-bottom: 0.15vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.4);
+}
+
+ul.settings_tabs li {
+    cursor: pointer;
+    font-size: 1.6vh;
+    font-weight: bold;
+    padding: 0.4vh 1.4vh;
+    opacity: 0.45;
+    border-bottom: 0.25vh solid transparent;
+    margin-bottom: -0.15vh;
+}
+
+ul.settings_tabs li.active {
+    opacity: 1;
+    border-bottom-color: rgb(var(--color_r), var(--color_g), var(--color_b));
+}
+
+ul.settings_tabs li:hover:not(.active) {
+    opacity: 0.75;
+}
+
+div.modal_popup table.settings-table tbody {
+    display: block;
+    position: relative;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+div.modal_popup table.settings-table tbody tr:first-child {
+    position: sticky;
+    top: 0px;
+}
+
+.settings-placeholder {
+    font-size: 1.7vh;
+    opacity: 0.5;
+    padding: 2vh 0;
+    margin: 0;
+}
+
 h6#settingsEditorStatus {
     margin: 0;
     margin-top: 1vh;
@@ -240,6 +291,49 @@ details#shortcutsHelpAccordeon2 table td:nth-child(3) input:first-child {
 
 details#shortcutsHelpAccordeon2 table td:nth-child(3) input[type="checkbox"] {
     width: auto;
+}
+
+/* SSH connection dialog */
+
+#sshConnectForm {
+    min-width: 34vh;
+}
+
+.ssh-profile-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8vh;
+    padding: 0.4vh 0;
+    border-bottom: 0.1vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.2);
+}
+
+.ssh-profile-item:last-child {
+    border-bottom: none;
+}
+
+.ssh-profile-name {
+    flex: 1;
+    font-size: 1.6vh;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Inline buttons inside ssh-profile-item (not in td, so need explicit styles) */
+.ssh-profile-item button,
+#settings-tab-ssh > button {
+    background: transparent;
+    border: 0.15vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.6);
+    color: rgb(var(--color_r), var(--color_g), var(--color_b));
+    font-size: 1.4vh;
+    padding: 0.3vh 0.7vh;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.ssh-profile-item button:hover,
+#settings-tab-ssh > button:hover {
+    background: rgba(var(--color_r), var(--color_g), var(--color_b), 0.3);
 }
 
 /* fsDisp media displayer */

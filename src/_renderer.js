@@ -37,10 +37,10 @@ window.onerror = (msg, path, line, col, error) => {
 const path = require("path");
 const fs = require("fs");
 const electron = require("electron");
-const remote = require("@electron/remote");
 const ipc = electron.ipcRenderer;
 
-const settingsDir = remote.app.getPath("userData");
+// App info synchronously pre-fetched by preload via contextBridge
+const settingsDir = window.edex.userData;
 const themesDir = path.join(settingsDir, "themes");
 const keyboardsDir = path.join(settingsDir, "keyboards");
 const fontsDir = path.join(settingsDir, "fonts");
@@ -48,18 +48,18 @@ const settingsFile = path.join(settingsDir, "settings.json");
 const shortcutsFile = path.join(settingsDir, "shortcuts.json");
 const lastWindowStateFile = path.join(settingsDir, "lastWindowState.json");
 
-// Load config
-window.settings = require(settingsFile);
-window.shortcuts = require(shortcutsFile);
-window.lastWindowState = require(lastWindowStateFile);
+// Load config — use readFileSync instead of require() to avoid stale cache
+window.settings = JSON.parse(fs.readFileSync(settingsFile, {encoding: "utf-8"}));
+window.shortcuts = JSON.parse(fs.readFileSync(shortcutsFile, {encoding: "utf-8"}));
+window.lastWindowState = JSON.parse(fs.readFileSync(lastWindowStateFile, {encoding: "utf-8"}));
 
 // Load CLI parameters
-if (remote.process.argv.includes("--nointro")) {
+if (window.edex.argv.includes("--nointro")) {
     window.settings.nointroOverride = true;
 } else {
     window.settings.nointroOverride = false;
 }
-if (electron.remote.process.argv.includes("--nocursor")) {
+if (window.edex.argv.includes("--nocursor")) {
     window.settings.nocursorOverride = true;
 } else {
     window.settings.nocursorOverride = false;
@@ -203,8 +203,11 @@ function initSystemInformationProxy() {
 // Init audio
 window.audioManager = new AudioManager();
 
+// Init alert manager (must come after audioManager)
+window.alertManager = new AlertManager();
+
 // See #223
-electron.remote.app.focus();
+window.edex.app.focus();
 
 let i = 0;
 if (window.settings.nointro || window.settings.nointroOverride) {
@@ -243,7 +246,7 @@ function displayLine() {
 
     switch(true) {
         case i === 2:
-            bootScreen.innerHTML += `eDEX-UI Kernel version ${electron.remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+            bootScreen.innerHTML += `eDEX-UI Kernel version ${window.edex.appVersion} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
         case i === 4:
             setTimeout(displayLine, 500);
             break;
@@ -487,7 +490,7 @@ async function initUI() {
     window.onmouseup = e => {
         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
     };
-    window.term[0].term.writeln("\033[1m"+`Welcome to eDEX-UI v${electron.remote.app.getVersion()} - Electron v${process.versions.electron}`+"\033[0m");
+    window.term[0].term.writeln("\033[1m"+`Welcome to eDEX-UI v${window.edex.appVersion} - Electron v${process.versions.electron}`+"\033[0m");
 
     await _delay(100);
 
@@ -506,6 +509,7 @@ async function initUI() {
 
     await _delay(200);
 
+    window.splitPane = new SplitPane();
     window.updateCheck = new UpdateChecker();
 }
 
@@ -603,7 +607,8 @@ window.openSettings = async () => {
         if (th === window.settings.theme) return;
         themes += `<option>${th}</option>`;
     });
-    for (let i = 0; i < electron.remote.screen.getAllDisplays().length; i++) {
+    let displays = await window.edex.screen.getAllDisplays();
+    for (let i = 0; i < displays.length; i++) {
         if (i !== window.settings.monitor) monitors += `<option>${i}</option>`;
     }
     let nets = await window.si.networkInterfaces();
@@ -614,10 +619,32 @@ window.openSettings = async () => {
     // Unlink the tactile keyboard from the terminal emulator to allow filling in the settings fields
     window.keyboard.detach();
 
+    const alertSettings = window.settings.alerts || { enabled: true, cpuThreshold: 90, ramThreshold: 85, tempThreshold: 80, cooldownSeconds: 30 };
+    const splitPanesVal = (typeof window.settings.splitPanes === "boolean") ? window.settings.splitPanes : false;
+    const splitRatioVal = window.settings.splitRatio || 0.5;
+    const _sshProfilesList = (window.settings.sshProfiles || []).map((p, i) =>
+        `<div class="ssh-profile-item"><span class="ssh-profile-name">${window._escapeHtml(p.name)}</span><button onclick="window.openSSHConnect(${i})">Connect</button></div>`
+    ).join("") || '<p class="settings-placeholder">No saved profiles yet.</p>';
+
+    window.settingsTabSwitch = tab => {
+        document.querySelectorAll(".settings-section").forEach(s => { s.style.display = "none"; });
+        document.querySelectorAll("ul.settings_tabs li").forEach(t => { t.classList.remove("active"); });
+        document.getElementById("settings-tab-" + tab).style.display = "";
+        document.querySelector("ul.settings_tabs li[data-tab='" + tab + "']").classList.add("active");
+    };
+
     new Modal({
         type: "custom",
-        title: `Settings <i>(v${electron.remote.app.getVersion()})</i>`,
-        html: `<table id="settingsEditor">
+        title: `Settings <i>(v${window.edex.appVersion})</i>`,
+        html: `<div id="settingsEditorWrapper">
+                <ul class="settings_tabs">
+                    <li class="active" data-tab="general" onclick="window.settingsTabSwitch('general')">GENERAL</li>
+                    <li data-tab="alerts" onclick="window.settingsTabSwitch('alerts')">ALERTS</li>
+                    <li data-tab="display" onclick="window.settingsTabSwitch('display')">DISPLAY</li>
+                    <li data-tab="ssh" onclick="window.settingsTabSwitch('ssh')">SSH</li>
+                </ul>
+                <div class="settings-section" id="settings-tab-general">
+                <table id="settingsEditor">
                     <tr>
                         <th>Key</th>
                         <th>Description</th>
@@ -796,13 +823,81 @@ window.openSettings = async () => {
                         </select></td>
                     </tr>
                 </table>
+                </div>
+                <div class="settings-section" id="settings-tab-alerts" style="display:none">
+                    <table class="settings-table">
+                        <tr>
+                            <th>Key</th>
+                            <th>Description</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>enabled</td>
+                            <td>Enable threshold-based system alerts</td>
+                            <td><select id="settingsEditor-alerts-enabled">
+                                <option>${alertSettings.enabled}</option>
+                                <option>${!alertSettings.enabled}</option>
+                            </select></td>
+                        </tr>
+                        <tr>
+                            <td>cpuThreshold</td>
+                            <td>CPU usage alert threshold (%)</td>
+                            <td><input type="number" id="settingsEditor-alerts-cpuThreshold" min="1" max="100" value="${alertSettings.cpuThreshold}"></td>
+                        </tr>
+                        <tr>
+                            <td>ramThreshold</td>
+                            <td>RAM usage alert threshold (%)</td>
+                            <td><input type="number" id="settingsEditor-alerts-ramThreshold" min="1" max="100" value="${alertSettings.ramThreshold}"></td>
+                        </tr>
+                        <tr>
+                            <td>tempThreshold</td>
+                            <td>CPU temperature alert threshold (°C)</td>
+                            <td><input type="number" id="settingsEditor-alerts-tempThreshold" min="1" max="150" value="${alertSettings.tempThreshold}"></td>
+                        </tr>
+                        <tr>
+                            <td>cooldownSeconds</td>
+                            <td>Minimum seconds between repeated alerts per metric</td>
+                            <td><input type="number" id="settingsEditor-alerts-cooldownSeconds" min="5" max="3600" value="${alertSettings.cooldownSeconds}"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="settings-section" id="settings-tab-display" style="display:none">
+                    <table class="settings-table">
+                        <tr>
+                            <th>Key</th>
+                            <th>Description</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>splitPanes</td>
+                            <td>Start eDEX with split-pane terminals enabled (Ctrl+Shift+\\ to toggle at runtime)</td>
+                            <td><select id="settingsEditor-splitPanes">
+                                <option>${splitPanesVal}</option>
+                                <option>${!splitPanesVal}</option>
+                            </select></td>
+                        </tr>
+                        <tr>
+                            <td>splitRatio</td>
+                            <td>Initial split ratio for side-by-side terminals (0.2 – 0.8)</td>
+                            <td><input type="number" id="settingsEditor-splitRatio" min="0.2" max="0.8" step="0.05" value="${splitRatioVal}"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="settings-section" id="settings-tab-ssh" style="display:none">
+                    <div id="ssh-profiles-container">
+                        ${_sshProfilesList}
+                    </div>
+                    <br>
+                    <button onclick="window.openSSHConnect()">New SSH Connection (Ctrl+Shift+E)</button>
+                </div>
+                </div>
                 <h6 id="settingsEditorStatus">Loaded values from memory</h6>
                 <br>`,
         buttons: [
-            {label: "Open in External Editor", action:`electron.shell.openPath('${settingsFile}');electronWin.minimize();`},
+            {label: "Open in External Editor", action:`window.edex.shell.openPath('${settingsFile}');window.edex.win.minimize();`},
             {label: "Save to Disk", action: "window.writeSettingsFile()"},
             {label: "Reload UI", action: "window.location.reload(true);"},
-            {label: "Restart eDEX", action: "electron.remote.app.relaunch();electron.remote.app.quit();"}
+            {label: "Restart eDEX", action: "window.edex.app.relaunch();"}
         ]
     }, () => {
         // Link the keyboard back to the terminal
@@ -846,7 +941,17 @@ window.writeSettingsFile = () => {
         hideDotfiles: (document.getElementById("settingsEditor-hideDotfiles").value === "true"),
         fsListView: (document.getElementById("settingsEditor-fsListView").value === "true"),
         experimentalGlobeFeatures: (document.getElementById("settingsEditor-experimentalGlobeFeatures").value === "true"),
-        experimentalFeatures: (document.getElementById("settingsEditor-experimentalFeatures").value === "true")
+        experimentalFeatures: (document.getElementById("settingsEditor-experimentalFeatures").value === "true"),
+        splitPanes: (document.getElementById("settingsEditor-splitPanes").value === "true"),
+        splitRatio: Number(document.getElementById("settingsEditor-splitRatio").value),
+        alerts: {
+            enabled: (document.getElementById("settingsEditor-alerts-enabled").value === "true"),
+            cpuThreshold: Number(document.getElementById("settingsEditor-alerts-cpuThreshold").value),
+            ramThreshold: Number(document.getElementById("settingsEditor-alerts-ramThreshold").value),
+            tempThreshold: Number(document.getElementById("settingsEditor-alerts-tempThreshold").value),
+            cooldownSeconds: Number(document.getElementById("settingsEditor-alerts-cooldownSeconds").value)
+        },
+        sshProfiles: window.settings.sshProfiles || []
     };
 
     Object.keys(window.settings).forEach(key => {
@@ -859,13 +964,197 @@ window.writeSettingsFile = () => {
     document.getElementById("settingsEditorStatus").innerText = "New values written to settings.json file at "+new Date().toTimeString();
 };
 
-window.toggleFullScreen = () => {
-    let useFullscreen = (electronWin.isFullScreen() ? false : true);
-    electronWin.setFullScreen(useFullscreen);
+// SSH session support
+window.openSSHConnect = (profileIndex) => {
+    if (document.getElementById("sshConnectForm")) return;
 
-    //Update settings
+    window.keyboard.detach();
+
+    const profiles = window.settings.sshProfiles || [];
+    const profilesHTML = profiles.length === 0
+        ? '<p class="settings-placeholder">No saved profiles. Fill the form and click Save Profile.</p>'
+        : profiles.map((p, i) => `<div class="ssh-profile-item"><span class="ssh-profile-name">${window._escapeHtml(p.name)}</span><button onclick="window.loadSSHProfile(${i})">Load</button><button onclick="window.deleteSSHProfile(${i})">Delete</button></div>`).join("");
+
+    let modalId = new Modal({
+        type: "custom",
+        title: "SSH Connect",
+        html: `<div id="sshConnectForm">
+                    <table>
+                        <tr>
+                            <td>Host</td>
+                            <td><input type="text" id="ssh-host" placeholder="hostname or IP"></td>
+                        </tr>
+                        <tr>
+                            <td>Port</td>
+                            <td><input type="number" id="ssh-port" value="22" min="1" max="65535"></td>
+                        </tr>
+                        <tr>
+                            <td>User</td>
+                            <td><input type="text" id="ssh-user" placeholder="username"></td>
+                        </tr>
+                        <tr>
+                            <td>Auth</td>
+                            <td><select id="ssh-auth-type" onchange="window.sshAuthTypeToggle()">
+                                <option value="password">Password</option>
+                                <option value="key">Key file</option>
+                            </select></td>
+                        </tr>
+                        <tr id="ssh-password-row">
+                            <td>Password</td>
+                            <td><input type="password" id="ssh-password" placeholder="(not saved to disk)"></td>
+                        </tr>
+                        <tr id="ssh-keypath-row" style="display:none">
+                            <td>Key path</td>
+                            <td><input type="text" id="ssh-keypath" placeholder="~/.ssh/id_ed25519"></td>
+                        </tr>
+                    </table>
+                    <div id="ssh-profiles-container" style="margin-top:1.2vh;">
+                        <div id="ssh-profiles-list">${profilesHTML}</div>
+                    </div>
+                    <h6 id="sshConnectStatus"></h6>
+                </div>`,
+        buttons: [
+            { label: "Connect",      action: "window.sshConnect()" },
+            { label: "Save Profile", action: "window.saveSSHProfile()" }
+        ]
+    }, () => {
+        window.keyboard.attach();
+        window.term[window.currentTerm].term.focus();
+    });
+
+    window._sshModal = window.modals[modalId];
+
+    if (typeof profileIndex === "number") {
+        setTimeout(() => window.loadSSHProfile(profileIndex), 50);
+    }
+};
+
+window.sshAuthTypeToggle = () => {
+    const type = document.getElementById("ssh-auth-type").value;
+    document.getElementById("ssh-password-row").style.display = type === "password" ? "" : "none";
+    document.getElementById("ssh-keypath-row").style.display  = type === "key"      ? "" : "none";
+};
+
+window.sshConnect = () => {
+    const host    = document.getElementById("ssh-host").value.trim();
+    const sshPort = Number(document.getElementById("ssh-port").value) || 22;
+    const user    = document.getElementById("ssh-user").value.trim();
+    const authType = document.getElementById("ssh-auth-type").value;
+
+    if (!host || !user) {
+        document.getElementById("sshConnectStatus").innerText = "Host and User are required.";
+        return;
+    }
+
+    const opts = { host, sshPort, user };
+    if (authType === "password") {
+        opts.password = document.getElementById("ssh-password").value;
+    } else {
+        opts.keyPath = document.getElementById("ssh-keypath").value.trim();
+    }
+
+    document.getElementById("sshConnectStatus").innerText = "Connecting...";
+
+    ipc.removeAllListeners("sshspawn-reply");
+    ipc.send("sshspawn", opts);
+    ipc.once("sshspawn-reply", (e, r) => {
+        if (r.startsWith("ERROR")) {
+            document.getElementById("sshConnectStatus").innerText = r.substr(7);
+            return;
+        }
+        const port = Number(r.substr(9));
+
+        let slot = null;
+        for (let i = 1; i <= 4; i++) {
+            if (typeof window.term[i] === "undefined") { slot = i; break; }
+        }
+        if (slot === null) {
+            document.getElementById("sshConnectStatus").innerText = "All terminal tabs are occupied.";
+            return;
+        }
+
+        window.term[slot] = new Terminal({
+            role: "client",
+            parentId: "terminal" + slot,
+            port
+        });
+        window.term[slot].onclose = () => {
+            document.getElementById("shell_tab" + slot).innerHTML = "<p>EMPTY</p>";
+            document.getElementById("terminal" + slot).innerHTML = "";
+            window.term[slot].term.dispose();
+            delete window.term[slot];
+            window.useAppShortcut("PREVIOUS_TAB");
+        };
+        window.term[slot].onprocesschange = p => {
+            document.getElementById("shell_tab" + slot).innerHTML = `<p>#${slot + 1} - ${p}</p>`;
+        };
+        document.getElementById("shell_tab" + slot).innerHTML = `<p>SSH:${window._escapeHtml(host)}</p>`;
+
+        if (window._sshModal) window._sshModal.close();
+        setTimeout(() => window.focusShellTab(slot), 500);
+    });
+};
+
+window.saveSSHProfile = () => {
+    const host     = document.getElementById("ssh-host").value.trim();
+    const user     = document.getElementById("ssh-user").value.trim();
+    if (!host || !user) {
+        document.getElementById("sshConnectStatus").innerText = "Host and User are required to save a profile.";
+        return;
+    }
+    const sshPort  = Number(document.getElementById("ssh-port").value) || 22;
+    const authType = document.getElementById("ssh-auth-type").value;
+    const keyPath  = authType === "key" ? document.getElementById("ssh-keypath").value.trim() : null;
+    const name     = `${user}@${host}`;
+    const profile  = { name, host, port: sshPort, user, authType, keyPath };
+
+    if (!window.settings.sshProfiles) window.settings.sshProfiles = [];
+    window.settings.sshProfiles = window.settings.sshProfiles.filter(p => p.name !== name);
+    window.settings.sshProfiles.push(profile);
+
+    fs.writeFileSync(settingsFile, JSON.stringify(window.settings, "", 4));
+    document.getElementById("sshConnectStatus").innerText = `Profile "${name}" saved.`;
+    window.renderSSHProfiles();
+};
+
+window.loadSSHProfile = i => {
+    const profile = (window.settings.sshProfiles || [])[i];
+    if (!profile) return;
+    document.getElementById("ssh-host").value  = profile.host || "";
+    document.getElementById("ssh-port").value  = profile.port || 22;
+    document.getElementById("ssh-user").value  = profile.user || "";
+    document.getElementById("ssh-auth-type").value = profile.authType || "password";
+    if (profile.authType === "key") {
+        document.getElementById("ssh-keypath").value = profile.keyPath || "";
+    }
+    window.sshAuthTypeToggle();
+};
+
+window.deleteSSHProfile = i => {
+    if (!window.settings.sshProfiles) return;
+    window.settings.sshProfiles.splice(i, 1);
+    fs.writeFileSync(settingsFile, JSON.stringify(window.settings, "", 4));
+    window.renderSSHProfiles();
+};
+
+window.renderSSHProfiles = () => {
+    const container = document.getElementById("ssh-profiles-list");
+    if (!container) return;
+    const profiles = window.settings.sshProfiles || [];
+    if (profiles.length === 0) {
+        container.innerHTML = '<p class="settings-placeholder">No saved profiles. Fill the form and click Save Profile.</p>';
+        return;
+    }
+    container.innerHTML = profiles.map((p, i) =>
+        `<div class="ssh-profile-item"><span class="ssh-profile-name">${window._escapeHtml(p.name)}</span><button onclick="window.loadSSHProfile(${i})">Load</button><button onclick="window.deleteSSHProfile(${i})">Delete</button></div>`
+    ).join("");
+};
+
+window.toggleFullScreen = async () => {
+    let useFullscreen = !(await window.edex.win.isFullScreen());
+    window.edex.win.setFullScreen(useFullscreen);
+
     window.lastWindowState["useFullscreen"] = useFullscreen;
-
     fs.writeFileSync(lastWindowStateFile, JSON.stringify(window.lastWindowState, "", 4));
 };
 
@@ -886,7 +1175,9 @@ window.openShortcutsHelp = () => {
         "FS_DOTFILES": "Toggle hidden files and directories in the file browser.",
         "KB_PASSMODE": "Toggle the on-screen keyboard's \"Password Mode\", which allows you to safely<br>type sensitive information even if your screen might be recorded (disable visual input feedback).",
         "DEV_DEBUG": "Open Chromium Dev Tools, for debugging purposes.",
-        "DEV_RELOAD": "Trigger front-end hot reload."
+        "DEV_RELOAD": "Trigger front-end hot reload.",
+        "SPLIT_PANE": "Toggle split-pane mode, showing two terminals side by side.",
+        "SSH_CONNECT": "Open the SSH connection dialog."
     };
 
     let appList = "";
@@ -916,7 +1207,7 @@ window.openShortcutsHelp = () => {
     window.keyboard.detach();
     new Modal({
         type: "custom",
-        title: `Available Keyboard Shortcuts <i>(v${electron.remote.app.getVersion()})</i>`,
+        title: `Available Keyboard Shortcuts <i>(v${window.edex.appVersion})</i>`,
         html: `<h5>Using either the on-screen or a physical keyboard, you can use the following shortcuts:</h5>
                 <details open id="shortcutsHelpAccordeon1">
                     <summary>Emulator shortcuts</summary>
@@ -943,7 +1234,7 @@ window.openShortcutsHelp = () => {
                 </details>
                 <br>`,
         buttons: [
-            {label: "Open Shortcuts File", action:`electron.shell.openPath('${shortcutsFile}');electronWin.minimize();`},
+            {label: "Open Shortcuts File", action:`window.edex.shell.openPath('${shortcutsFile}');window.edex.win.minimize();`},
             {label: "Reload UI", action: "window.location.reload(true);"},
         ]
     }, () => {
@@ -1032,10 +1323,16 @@ window.useAppShortcut = action => {
             window.keyboard.togglePasswordMode();
             return true;
         case "DEV_DEBUG":
-            electron.remote.getCurrentWindow().webContents.toggleDevTools();
+            window.edex.win.toggleDevTools();
             return true;
         case "DEV_RELOAD":
             window.location.reload(true);
+            return true;
+        case "SPLIT_PANE":
+            if (window.splitPane) window.splitPane.toggle();
+            return true;
+        case "SSH_CONNECT":
+            window.openSSHConnect();
             return true;
         default:
             console.warn(`Unknown "${action}" app shortcut action`);
@@ -1043,35 +1340,11 @@ window.useAppShortcut = action => {
     }
 };
 
-// Global keyboard shortcuts
-const globalShortcut = electron.remote.globalShortcut;
-globalShortcut.unregisterAll();
-
+// Global keyboard shortcuts — managed in the main process (see _boot.js shortcuts-sync handler)
+// Callbacks can't cross the contextBridge, so we send the shortcut list to main and
+// receive fired events back via 'shortcut-fired' IPC.
 window.registerKeyboardShortcuts = () => {
-    window.shortcuts.forEach(cut => {
-        if (!cut.enabled) return;
-
-        if (cut.type === "app") {
-            if (cut.action === "TAB_X") {
-                for (let i = 1; i <= 5; i++) {
-                    let trigger = cut.trigger.replace("X", i);
-                    let dfn = () => { window.useAppShortcut(`TAB_${i}`) };
-                    globalShortcut.register(trigger, dfn);
-                }
-            } else {
-                globalShortcut.register(cut.trigger, () => {
-                    window.useAppShortcut(cut.action);
-                });
-            }
-        } else if (cut.type === "shell") {
-            globalShortcut.register(cut.trigger, () => {
-                let fn = (cut.linebreak) ? "writelr" : "write";
-                window.term[window.currentTerm][fn](cut.action);
-            });
-        } else {
-            console.warn(`${cut.trigger} has unknown type`);
-        }
-    });
+    window.edex.shortcuts.sync(window.shortcuts);
 };
 window.registerKeyboardShortcuts();
 
@@ -1081,7 +1354,17 @@ window.addEventListener("focus", () => {
 });
 
 window.addEventListener("blur", () => {
-    globalShortcut.unregisterAll();
+    window.edex.shortcuts.unregisterAll();
+});
+
+// Receive shortcut-fired events from main and dispatch to the appropriate handler
+window.edex.shortcuts.onFired(info => {
+    if (info.type === "app") {
+        window.useAppShortcut(info.action);
+    } else if (info.type === "shell") {
+        let fn = (info.linebreak) ? "writelr" : "write";
+        window.term[window.currentTerm][fn](info.action);
+    }
 });
 
 // Prevent showing menu, exiting fullscreen or app with keyboard shortcuts
@@ -1106,12 +1389,12 @@ document.addEventListener("keydown", e => {
 // Fix #265
 window.addEventListener("keyup", e => {
     if (require("os").platform() === "win32" && e.key === "F4" && e.altKey === true) {
-        electron.remote.app.quit();
+        window.edex.app.quit();
     }
 });
 
 // Fix double-tap zoom on touchscreens
-electron.webFrame.setVisualZoomLevelLimits(1, 1);
+window.edex.webFrame.setVisualZoomLevelLimits(1, 1);
 
 // Resize terminal with window
 window.onresize = () => {
@@ -1122,31 +1405,27 @@ window.onresize = () => {
     }
 };
 
-// See #413
+// See #413 — window events are forwarded from main via IPC (replaces electronWin.on())
 window.resizeTimeout = null;
-let electronWin = electron.remote.getCurrentWindow();
-electronWin.on("resize", () => {
+window.edex.win.onResize(() => {
     if (settings.keepGeometry === false) return;
     clearTimeout(window.resizeTimeout);
-    window.resizeTimeout = setTimeout(() => {
-        let win = electron.remote.getCurrentWindow();
-        if (win.isFullScreen()) return false;
-        if (win.isMaximized()) {
-            win.unmaximize();
-            win.setFullScreen(true);
+    window.resizeTimeout = setTimeout(async () => {
+        if (await window.edex.win.isFullScreen()) return false;
+        if (await window.edex.win.isMaximized()) {
+            window.edex.win.unmaximize();
+            window.edex.win.setFullScreen(true);
             return false;
         }
-
-        let size = win.getSize();
-
+        let size = await window.edex.win.getSize();
         if (size[0] >= size[1]) {
-            win.setSize(size[0], parseInt(size[0] * 9 / 16));
+            window.edex.win.setSize(size[0], parseInt(size[0] * 9 / 16));
         } else {
-            win.setSize(size[1], parseInt(size[1] * 9 / 16));
+            window.edex.win.setSize(size[1], parseInt(size[1] * 9 / 16));
         }
     }, 100);
 });
 
-electronWin.on("leave-full-screen", () => {
-    electron.remote.getCurrentWindow().setSize(960, 540);
+window.edex.win.onLeaveFullscreen(() => {
+    window.edex.win.setSize(960, 540);
 });

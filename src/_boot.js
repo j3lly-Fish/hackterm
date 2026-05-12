@@ -30,13 +30,13 @@ if (!gotLock) {
 signale.time("Startup");
 
 const electron = require("electron");
-require('@electron/remote/main').initialize()
 const ipc = electron.ipcMain;
 const path = require("path");
 const url = require("url");
 const fs = require("fs");
 const which = require("which");
-const Terminal = require("./classes/terminal.class.js").Terminal;
+const Terminal    = require("./classes/terminal.class.js").Terminal;
+const SshTerminal = require("./classes/sshTerminal.class.js").SshTerminal;
 
 ipc.on("log", (e, type, content) => {
     signale[type](content);
@@ -93,7 +93,17 @@ if (!fs.existsSync(settingsFile)) {
         hideDotfiles: false,
         fsListView: false,
         experimentalGlobeFeatures: false,
-        experimentalFeatures: false
+        experimentalFeatures: false,
+        splitPanes: false,
+        splitRatio: 0.5,
+        sshProfiles: [],
+        alerts: {
+            enabled: true,
+            cpuThreshold: 90,
+            ramThreshold: 85,
+            tempThreshold: 80,
+            cooldownSeconds: 30
+        }
     }, "", 4));
     signale.info(`Default settings written to ${settingsFile}`);
 }
@@ -113,6 +123,8 @@ if (!fs.existsSync(shortcutsFile)) {
         { type: "app", trigger: "Ctrl+Shift+P", action: "KB_PASSMODE", enabled: true },
         { type: "app", trigger: "Ctrl+Shift+I", action: "DEV_DEBUG", enabled: false },
         { type: "app", trigger: "Ctrl+Shift+F5", action: "DEV_RELOAD", enabled: true },
+        { type: "app", trigger: "Ctrl+Shift+\\", action: "SPLIT_PANE", enabled: true },
+        { type: "app", trigger: "Ctrl+Shift+E", action: "SSH_CONNECT", enabled: true },
         { type: "shell", trigger: "Ctrl+Shift+Alt+Space", action: "neofetch", linebreak: true, enabled: false }
     ], "", 4));
     signale.info(`Default keymap written to ${shortcutsFile}`);
@@ -191,9 +203,9 @@ function createWindow(settings) {
         frame: settings.allowWindowed || false,
         backgroundColor: '#000000',
         webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
             devTools: true,
-	    enableRemoteModule: true,
-            contextIsolation: false,
+            contextIsolation: true,
             backgroundThrottling: false,
             webSecurity: true,
             nodeIntegration: true,
@@ -211,6 +223,9 @@ function createWindow(settings) {
 
     signale.complete("Frontend window created!");
     win.show();
+    // Forward window events to renderer via IPC (replaces electron.remote.getCurrentWindow().on())
+    win.on('resize', () => { if (!win.isDestroyed()) win.webContents.send('window-resize'); });
+    win.on('leave-full-screen', () => { if (!win.isDestroyed()) win.webContents.send('window-leave-fullscreen'); });
     if (!settings.allowWindowed) {
         win.setResizable(false);
     } else if (!require(lastWindowStateFile)["useFullscreen"]) {
@@ -239,6 +254,15 @@ app.on('ready', async () => {
         TERM_PROGRAM: "eDEX-UI",
         TERM_PROGRAM_VERSION: app.getVersion()
     }, settings.env);
+
+    // Preload bridge: synchronous app info handler (must be registered before createWindow)
+    ipc.on('preload-get-app-info', (e) => {
+        e.returnValue = {
+            userData: app.getPath('userData'),
+            version:  app.getVersion(),
+            argv:     process.argv,
+        };
+    });
 
     signale.pending(`Creating new terminal process on port ${settings.port || '3000'}`);
     tty = new Terminal({
@@ -272,6 +296,46 @@ app.on('ready', async () => {
     require("./_multithread.js");
 
     createWindow(settings);
+
+    // IPC handlers replacing electron.remote.* in the renderer
+    ipc.on('app-focus', () => app.focus());
+    ipc.on('app-quit', () => app.quit());
+    ipc.on('app-relaunch', () => { app.relaunch(); app.exit(0); });
+
+    ipc.handle('win-isFullScreen',  ()        => win.isFullScreen());
+    ipc.handle('win-setFullScreen', (e, v)    => win.setFullScreen(v));
+    ipc.handle('win-getSize',       ()        => win.getSize());
+    ipc.handle('win-setSize',       (e, w, h) => win.setSize(w, h));
+    ipc.handle('win-isMaximized',   ()        => win.isMaximized());
+    ipc.on('win-unmaximize',    () => win.unmaximize());
+    ipc.on('win-minimize',      () => win.minimize());
+    ipc.on('win-toggleDevTools',() => win.webContents.toggleDevTools());
+
+    ipc.handle('screen-getAllDisplays', () => electron.screen.getAllDisplays());
+    ipc.handle('shell-openPath',     (e, p)   => shell.openPath(p));
+    ipc.handle('shell-openExternal', (e, url) => shell.openExternal(url));
+
+    // Global keyboard shortcuts managed in main (callbacks can't cross the context bridge)
+    ipc.on('shortcuts-sync', (e, cuts) => {
+        electron.globalShortcut.unregisterAll();
+        cuts.forEach(cut => {
+            if (!cut.enabled) return;
+            if (cut.action === 'TAB_X') {
+                for (let i = 1; i <= 5; i++) {
+                    const trigger = cut.trigger.replace('X', i);
+                    const action = `TAB_${i}`;
+                    electron.globalShortcut.register(trigger, () => {
+                        if (!win.isDestroyed()) win.webContents.send('shortcut-fired', { type: 'app', action });
+                    });
+                }
+            } else {
+                electron.globalShortcut.register(cut.trigger, () => {
+                    if (!win.isDestroyed()) win.webContents.send('shortcut-fired', { type: cut.type, action: cut.action, linebreak: cut.linebreak });
+                });
+            }
+        });
+    });
+    ipc.on('shortcuts-unregisterAll', () => electron.globalShortcut.unregisterAll());
 
     // Support for more terminals, used for creating tabs (currently limited to 4 extra terms)
     extraTtys = {};
@@ -327,6 +391,54 @@ app.on('ready', async () => {
             extraTtys[port] = term;
             e.sender.send("ttyspawn-reply", "SUCCESS: "+port);
         }
+    });
+
+    ipc.on("sshspawn", (e, opts) => {
+        let port = null;
+        Object.keys(extraTtys).forEach(key => {
+            if (extraTtys[key] === null && port === null) {
+                extraTtys[key] = {};
+                port = key;
+            }
+        });
+
+        if (port === null) {
+            signale.error("SSH spawn denied (Reason: exceeded max TTYs number)");
+            e.sender.send("sshspawn-reply", "ERROR: max number of ttys reached");
+            return;
+        }
+
+        signale.pending(`Creating SSH session on port ${port} → ${opts.user}@${opts.host}:${opts.sshPort || 22}`);
+        let term = new SshTerminal({
+            host:     opts.host,
+            sshPort:  opts.sshPort || 22,
+            user:     opts.user,
+            password: opts.password,
+            keyPath:  opts.keyPath,
+            port:     Number(port)
+        });
+
+        term.onclosed = () => {
+            term.wss.close();
+            extraTtys[port] = null;
+            term = null;
+            signale.complete(`SSH session ended at port ${port}`);
+        };
+        term.ondisconnected = () => {
+            term.onclosed = () => {};
+            term.close();
+            term.wss.close();
+            extraTtys[port] = null;
+            term = null;
+            signale.warn(`SSH session disconnected at port ${port}`);
+        };
+        term.onopened = () => {
+            signale.success(`SSH session at port ${port} connected to frontend`);
+        };
+        term.onresized = () => {};
+
+        extraTtys[port] = term;
+        e.sender.send("sshspawn-reply", "SUCCESS: " + port);
     });
 
     // Backend support for theme and keyboard hotswitch

@@ -89,7 +89,23 @@ See [eDEX-UI issue #272](https://github.com/GitSquared/edex-ui/issues/272) for t
 
 **IMPORTANT:** the following instructions run hackterm from source. Release binaries will be published separately once the project stabilizes.
 
-#### Linux / macOS (requires Xcode command line tools on macOS):
+#### Prerequisites
+
+- **Node.js** — v16 or later recommended ([nodejs.org](https://nodejs.org))
+- **macOS** — Xcode Command Line Tools required: `xcode-select --install`
+- **Windows** — run the commands below as Administrator
+
+#### macOS
+
+```sh
+xcode-select --install        # skip if already installed
+git clone https://github.com/j3lly-Fish/hackterm.git
+cd hackterm
+npm run install-mac
+npm run start
+```
+
+#### Linux
 
 ```sh
 git clone https://github.com/j3lly-Fish/hackterm.git
@@ -98,7 +114,7 @@ npm run install-linux
 npm run start
 ```
 
-#### Windows (run as administrator):
+#### Windows (run as Administrator)
 
 ```sh
 git clone https://github.com/j3lly-Fish/hackterm.git
@@ -112,8 +128,10 @@ npm run start
 Note: due to native modules, you can only build for the OS you are currently running.
 
 ```sh
-npm install          # NOT install-linux/windows
-npm run build-linux  # or build-darwin / build-windows
+npm install           # NOT install-mac/linux/windows
+npm run build-darwin  # macOS
+npm run build-linux   # Linux
+npm run build-windows # Windows
 ```
 
 Output goes to the `dist/` folder.

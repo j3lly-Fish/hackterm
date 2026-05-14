@@ -6,6 +6,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -21,29 +24,25 @@ jobs:
       with:
         path: ~/.cache/electron
         key: ${{ runner.os }}-electron-${{ hashFiles('**/package-lock.json') }}
-    - name: Install system dependencies for x64->ia32 cross-build
-      run: |
-        sudo apt update
-        sudo apt install -y libc6-dev-i386 gcc-multilib g++-multilib
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-    - name: Install build deps
+    - name: Install root build tools
       run: npm install
-    - name: Build for x64
+    - name: Run prebuild
+      run: npm run prebuild-linux
+    - name: Build AppImage (x64)
       run: ./node_modules/.bin/electron-builder build -l --x64
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@v4
       with:
-        name: Linux-AppImages
+        name: Linux-AppImage
         path: dist/*.AppImage
         if-no-files-found: error
 
   build-darwin:
-    # Use macos-13 (Intel x64) to match the x64 build target in package.json.
-    # Native modules must be built on the same architecture as the target.
     runs-on: macos-13
     steps:
     - uses: actions/checkout@v4
@@ -63,8 +62,10 @@ jobs:
         node-version: '18'
     - name: Install root build tools
       run: npm install
+    - name: Run prebuild
+      run: npm run prebuild-darwin
     - name: Build macOS DMG
-      run: npm run build-darwin
+      run: ./node_modules/.bin/electron-builder build -m
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@v4
@@ -91,16 +92,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-    - name: Install build deps
+    - name: Install root build tools
       run: npm install
     - name: Run prebuild
-      run: |
-        New-Item -ItemType Directory -Force -Path prebuild-src
-        Copy-Item -Path src\* -Destination prebuild-src\ -Recurse -Force -Exclude node_modules
-        node prebuild-minify.js
-        Set-Location prebuild-src
-        npm install --ignore-scripts
-      shell: pwsh
+      run: npm run prebuild-windows
     - name: Build Windows installer
       run: node_modules\.bin\electron-builder build -w
       env:

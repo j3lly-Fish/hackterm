@@ -7,6 +7,7 @@ section.mod_column {
     padding-bottom: 0.5vh;
     box-sizing: border-box;
     position: absolute;
+    z-index: 10;
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
@@ -50,6 +51,11 @@ section.mod_column.activated > div {
 section#mod_column_left {
     left: -0.555vh;
     align-items: flex-end;
+    justify-content: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.4) transparent;
 }
 
 section#mod_column_left > h3.title {

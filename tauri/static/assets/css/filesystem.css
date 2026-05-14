@@ -1,16 +1,15 @@
 section#filesystem {
     position: relative;
     top: -0.925vh;
-    width: 43vw;
+    width: 25vw;
     height: 36vh;
-    margin-right: 0.5vw;
 
     opacity: 1;
     transition: opacity .5s cubic-bezier(0.4, 0, 1, 1);
 }
 
 section#filesystem > h3.title {
-    width: 43vw;
+    width: 100%;
     padding-right: 0;
 }
 
@@ -29,7 +28,7 @@ div#fs_disp_container {
     left: .35vw;
     top: 1.5vh;
     height: 31.5vh;
-    width: 43vw;
+    width: calc(100% - 0.7vw);
     overflow: auto;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8.5vh, 1fr));

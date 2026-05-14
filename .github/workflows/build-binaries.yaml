@@ -31,8 +31,8 @@ jobs:
         node-version: '18'
     - name: Install build deps
       run: npm install
-    - name: Build for x64 / ia32 / arm64 / armv7l
-      run: npm run build-linux
+    - name: Build for x64
+      run: ./node_modules/.bin/electron-builder build -l --x64
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@v4
@@ -93,8 +93,16 @@ jobs:
         node-version: '18'
     - name: Install build deps
       run: npm install
+    - name: Run prebuild
+      run: |
+        New-Item -ItemType Directory -Force -Path prebuild-src
+        Copy-Item -Path src\* -Destination prebuild-src\ -Recurse -Force -Exclude node_modules
+        node prebuild-minify.js
+        Set-Location prebuild-src
+        npm install --ignore-scripts
+      shell: pwsh
     - name: Build Windows installer
-      run: npm run build-windows
+      run: node_modules\.bin\electron-builder build -w
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@v4

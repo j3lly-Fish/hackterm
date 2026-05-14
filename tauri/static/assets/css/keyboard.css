@@ -2,7 +2,7 @@ section#keyboard {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 63vw;
+    width: 56vw;
     position: relative;
     top: -0.925vh;
 }
@@ -18,8 +18,8 @@ div.keyboard_row {
     align-items: center;
     justify-content: center;
     flex-wrap: nowrap;
-    margin: 0.55vh 0vh;
-    height: 6.2vh;
+    margin: 0.4vh 0vh;
+    height: 6.0vh;
 }
 
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(1) {
@@ -56,8 +56,8 @@ div.keyboard_row:last-child {
 }
 
 div.keyboard_key {
-    height: 3.2vw;
-    min-width: 3.2vw;
+    height: 2.95vw;
+    min-width: 2.95vw;
     overflow: hidden;
     border-radius: 0.46vh;
     background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);

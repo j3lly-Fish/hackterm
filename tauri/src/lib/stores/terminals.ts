@@ -21,7 +21,7 @@ export async function spawnMainTerminal(
   cols = 80,
   rows = 24,
 ): Promise<void> {
-  const pid = await invoke<number>('spawn_terminal', {
+  const result = await invoke<{ pid: number; port: number }>('spawn_terminal', {
     shell,
     args: [],
     cwd,
@@ -32,8 +32,8 @@ export async function spawnMainTerminal(
 
   const tab: TerminalTab = {
     index: 0,
-    port,
-    pid,
+    port: result.port,
+    pid: result.pid,
     label: 'MAIN SHELL',
     active: true,
     cwd,
@@ -56,20 +56,19 @@ export async function spawnExtraTerminal(
   cols = 80,
   rows = 24,
 ): Promise<number> {
-  const port = basePort + index * 2;
-  const pid = await invoke<number>('spawn_terminal', {
+  const result = await invoke<{ pid: number; port: number }>('spawn_terminal', {
     shell,
     args: [],
     cwd,
-    port,
+    port: basePort + index * 2,
     cols,
     rows,
   });
 
   const tab: TerminalTab = {
     index,
-    port,
-    pid,
+    port: result.port,
+    pid: result.pid,
     label: `#${index + 1}`,
     active: false,
     cwd,
@@ -80,7 +79,7 @@ export async function spawnExtraTerminal(
     next[index] = tab;
     return next;
   });
-  return port;
+  return result.port;
 }
 
 export async function closeTab(index: number): Promise<void> {

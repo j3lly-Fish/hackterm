@@ -19,11 +19,17 @@ fn default_shell() -> String {
     }
 }
 
-fn default_settings(config_dir: &PathBuf) -> serde_json::Value {
+fn default_cwd() -> String {
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| "/".to_string())
+}
+
+fn default_settings(_config_dir: &PathBuf) -> serde_json::Value {
     serde_json::json!({
         "shell": default_shell(),
         "shellArgs": "",
-        "cwd": config_dir.to_string_lossy(),
+        "cwd": default_cwd(),
         "keyboard": "en-US",
         "theme": "tron",
         "termFontSize": 15,

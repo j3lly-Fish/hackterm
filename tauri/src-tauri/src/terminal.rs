@@ -21,16 +21,7 @@ pub type TerminalMap = HashMap<u16, TerminalSession>;
 #[derive(Serialize)]
 pub struct SpawnResult {
     pub pid: u32,
-}
-
-#[derive(Deserialize)]
-pub struct SpawnArgs {
-    pub shell: String,
-    pub args: Vec<String>,
-    pub cwd: String,
     pub port: u16,
-    pub cols: u16,
-    pub rows: u16,
 }
 
 #[tauri::command]
@@ -39,10 +30,10 @@ pub async fn spawn_terminal(
     shell: String,
     args: Vec<String>,
     cwd: String,
-    port: u16,
+    #[allow(unused_variables)] port: u16,
     cols: u16,
     rows: u16,
-) -> Result<u32, String> {
+) -> Result<SpawnResult, String> {
     let pty_system = native_pty_system();
 
     let pair = pty_system
@@ -121,22 +112,9 @@ pub async fn spawn_terminal(
         });
     });
 
-    // If a session already exists on this port (e.g. hot-reload), shut it down first
-    // and wait for the OS to release the port before re-binding.
-    {
-        let mut terminals = state.terminals.lock().unwrap();
-        if let Some(mut old) = terminals.remove(&port) {
-            if let Some(tx) = old.shutdown_tx.take() {
-                let _ = tx.send(());
-            }
-        }
-    }
-    // Give the old task time to exit and release the port (shutdown_rx cancels accept())
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-
-    // Bind the TCP listener *before* returning so the frontend can connect immediately
-    let addr = format!("127.0.0.1:{}", port);
-    let listener = TcpListener::bind(&addr).await.map_err(|e| e.to_string())?;
+    // Bind to port 0 — OS assigns a free ephemeral port, eliminating "address already in use"
+    let listener = TcpListener::bind("127.0.0.1:0").await.map_err(|e| e.to_string())?;
+    let actual_port = listener.local_addr().map_err(|e| e.to_string())?.port();
 
     // Async task: WebSocket server
     let ws_tx_clone = ws_tx.clone();
@@ -194,7 +172,7 @@ pub async fn spawn_terminal(
 
     let mut terminals = state.terminals.lock().unwrap();
     terminals.insert(
-        port,
+        actual_port,
         TerminalSession {
             child_pid,
             master,
@@ -203,7 +181,7 @@ pub async fn spawn_terminal(
         },
     );
 
-    Ok(child_pid)
+    Ok(SpawnResult { pid: child_pid, port: actual_port })
 }
 
 #[tauri::command]

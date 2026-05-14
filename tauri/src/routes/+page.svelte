@@ -65,9 +65,11 @@
 
   onMount(async () => {
     window.onerror = (msg, _url, line, col, err) => {
+      if (isAudioError(String(msg))) return;
       showError(String(err ?? 'Error'), `${msg}\n\nat line ${line}:${col}`);
     };
     window.onunhandledrejection = (e) => {
+      if (isAudioError(String(e.reason))) return;
       showError('Unhandled async error', String(e.reason));
     };
 
@@ -254,6 +256,13 @@
   }
 
   // ──────────────────────── Error / modal ────────────────────────
+
+  function isAudioError(msg: string): boolean {
+    const m = msg.toLowerCase();
+    return m.includes('audio') || m.includes('audiocontext') ||
+           m.includes('invalidstateerror') || m.includes('howler') ||
+           m.includes('webaudio') || m.includes('sound');
+  }
 
   function showError(title: string, message: string) {
     modalType = 'error';

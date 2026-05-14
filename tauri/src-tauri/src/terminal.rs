@@ -121,6 +121,19 @@ pub async fn spawn_terminal(
         });
     });
 
+    // If a session already exists on this port (e.g. hot-reload), shut it down first
+    // and wait for the OS to release the port before re-binding.
+    {
+        let mut terminals = state.terminals.lock().unwrap();
+        if let Some(mut old) = terminals.remove(&port) {
+            if let Some(tx) = old.shutdown_tx.take() {
+                let _ = tx.send(());
+            }
+        }
+    }
+    // Give the old task time to exit and release the port (shutdown_rx cancels accept())
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
     // Bind the TCP listener *before* returning so the frontend can connect immediately
     let addr = format!("127.0.0.1:{}", port);
     let listener = TcpListener::bind(&addr).await.map_err(|e| e.to_string())?;
@@ -128,13 +141,15 @@ pub async fn spawn_terminal(
     // Async task: WebSocket server
     let ws_tx_clone = ws_tx.clone();
     tokio::spawn(async move {
-        // Accept one connection (xterm.js)
-        let (stream, _) = match listener.accept().await {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("WS accept failed: {}", e);
-                return;
-            }
+        let mut shutdown_rx = shutdown_rx;
+
+        // Accept connection — cancellable so the port is released immediately on shutdown/reload
+        let (stream, _) = tokio::select! {
+            result = listener.accept() => match result {
+                Ok(s) => s,
+                Err(e) => { eprintln!("WS accept failed: {}", e); return; }
+            },
+            _ = &mut shutdown_rx => return,
         };
 
         let ws = match accept_async(stream).await {
@@ -146,7 +161,6 @@ pub async fn spawn_terminal(
         };
 
         let (mut ws_write, mut ws_read) = ws.split();
-        let mut shutdown_rx = shutdown_rx;
 
         loop {
             tokio::select! {

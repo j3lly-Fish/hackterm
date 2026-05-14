@@ -2,7 +2,7 @@ section#filesystem {
     position: relative;
     top: -0.925vh;
     width: 43vw;
-    height: 30vh;
+    height: 36vh;
     margin-right: 0.5vw;
 
     opacity: 1;
@@ -28,7 +28,7 @@ div#fs_disp_container {
     position: relative;
     left: .35vw;
     top: 1.5vh;
-    height: 25.5vh;
+    height: 31.5vh;
     width: 43vw;
     overflow: auto;
     display: grid;

@@ -19,7 +19,6 @@
   import CpuInfo from '$lib/components/CpuInfo.svelte';
   import RamWatcher from '$lib/components/RamWatcher.svelte';
   import TopList from '$lib/components/TopList.svelte';
-  import SysInfo from '$lib/components/SysInfo.svelte';
   import HardwareInspector from '$lib/components/HardwareInspector.svelte';
   import NetStat from '$lib/components/NetStat.svelte';
   import ConnInfo from '$lib/components/ConnInfo.svelte';
@@ -328,7 +327,6 @@
     <section class="mod_column activated" id="mod_column_left">
       <h3 class="title"><p>PANEL</p><p>SYSTEM</p></h3>
       <Clock settings={s} />
-      <SysInfo />
       <HardwareInspector />
       <CpuInfo />
       <RamWatcher />

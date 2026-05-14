@@ -350,6 +350,7 @@
                 <Terminal
                   bind:this={termRefs[i]}
                   port={tab.port}
+                  pid={tab.pid}
                   index={i}
                   active={$activeTab === i}
                   settings={s}

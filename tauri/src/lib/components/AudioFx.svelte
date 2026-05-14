@@ -30,6 +30,9 @@
       sounds[name] = new Howl({
         src: [`/assets/audio/${name}.wav`],
         volume: settings.audioVolume,
+        html5: true,
+        onloaderror: () => { /* silently ignore missing/unsupported audio */ },
+        onplayerror: () => { /* silently ignore playback failures */ },
       });
     }
   });

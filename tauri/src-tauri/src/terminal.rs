@@ -121,18 +121,13 @@ pub async fn spawn_terminal(
         });
     });
 
+    // Bind the TCP listener *before* returning so the frontend can connect immediately
+    let addr = format!("127.0.0.1:{}", port);
+    let listener = TcpListener::bind(&addr).await.map_err(|e| e.to_string())?;
+
     // Async task: WebSocket server
     let ws_tx_clone = ws_tx.clone();
     tokio::spawn(async move {
-        let addr = format!("127.0.0.1:{}", port);
-        let listener = match TcpListener::bind(&addr).await {
-            Ok(l) => l,
-            Err(e) => {
-                eprintln!("WS bind failed on {}: {}", addr, e);
-                return;
-            }
-        };
-
         // Accept one connection (xterm.js)
         let (stream, _) = match listener.accept().await {
             Ok(s) => s,

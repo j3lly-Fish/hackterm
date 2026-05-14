@@ -7,6 +7,7 @@
 
   export let port: number;
   export let index: number;
+  export let pid: number = 0;
   export let active: boolean = false;
   export let settings: AppSettings;
   export let theme: Theme;
@@ -15,7 +16,6 @@
   let term: import('@xterm/xterm').Terminal | null = null;
   let fitAddon: import('@xterm/addon-fit').FitAddon | null = null;
   let ws: WebSocket | null = null;
-  let pid = 0;
   let cwdPollId: ReturnType<typeof setInterval> | null = null;
 
   export function fit() {

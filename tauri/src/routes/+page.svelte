@@ -370,12 +370,6 @@
       </div>
     </section>
 
-    <!-- Filesystem -->
-    <Filesystem
-      settings={s}
-      cwd={$tabs[$activeTab]?.cwd ?? s.cwd}
-    />
-
     <!-- On-screen keyboard -->
     <Keyboard
       settings={s}
@@ -386,6 +380,12 @@
           ws.onopen = () => { ws.send(cmd); ws.close(); };
         }
       }}
+    />
+
+    <!-- Filesystem -->
+    <Filesystem
+      settings={s}
+      cwd={$tabs[$activeTab]?.cwd ?? s.cwd}
     />
 
     <!-- Right column -->

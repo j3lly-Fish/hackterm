@@ -2,10 +2,9 @@ section#keyboard {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 56vw;
-    zoom: 0.73;
+    width: 40vw;
     position: relative;
-    top: -0.925vh;
+    top: -0.66vh;
 }
 
 section#keyboard[data-password-mode="true"] {
@@ -19,8 +18,8 @@ div.keyboard_row {
     align-items: center;
     justify-content: center;
     flex-wrap: nowrap;
-    margin: 0.45vh 0vh;
-    height: 6.5vh;
+    margin: 0.32vh 0vh;
+    height: 4.6vh;
 }
 
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(1) {
@@ -53,17 +52,17 @@ section#keyboard.animation_state_2 > * {
 
 div.keyboard_row:last-child {
     position: relative;
-    left: 2.4vh;
+    left: 1.7vh;
 }
 
 div.keyboard_key {
-    height: 3.15vw;
-    min-width: 3.15vw;
+    height: 2.2vw;
+    min-width: 2.2vw;
     overflow: hidden;
-    border-radius: 0.46vh;
+    border-radius: 0.33vh;
     background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
-    border: 0.18vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
-    margin: 0vh 0.46vh;
+    border: 0.13vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
+    margin: 0vh 0.33vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -72,7 +71,7 @@ div.keyboard_key {
 }
 
 section#keyboard:not([data-password-mode="true"]) div.keyboard_key:active, section#keyboard:not([data-password-mode="true"]) div.keyboard_key.active {
-    border: 0.18vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
+    border: 0.13vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
     background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 1);
 }
 
@@ -90,7 +89,7 @@ section#keyboard:not([data-password-mode="true"]) div.keyboard_key.blink {
 }
 
 div.keyboard_key > * {
-    margin: 0vh 0.46vh;
+    margin: 0vh 0.33vh;
     padding: 0vh;
     -webkit-margin-after: 0vh;
     -webkit-margin-before: 0vh;
@@ -98,45 +97,45 @@ div.keyboard_key > * {
 
 div.keyboard_key > h1, div.keyboard_key > h4, div.keyboard_row > .keyboard_key:last-child > *, div.keyboard_row > .keyboard_key:first-child > * {
     position: relative;
-    top: 0.278vh;
-    font-size: 2.4vh;
+    top: 0.2vh;
+    font-size: 1.7vh;
 }
 
 div.keyboard_row:not(:nth-child(4)) > .keyboard_key:last-child > *, div.keyboard_row > .keyboard_key:first-child > *, div.keyboard_row:last-child > .keyboard_key > *, div.keyboard_row:nth-child(4) > .keyboard_key:nth-last-child(2) > * {
-    font-size: 1.85vh;
+    font-size: 1.3vh;
 }
 
 div.keyboard_row:last-child > .keyboard_key:nth-last-child(-n+3) > * {
-    font-size: 2.4vh;
+    font-size: 1.7vh;
 }
 
 div.keyboard_key > svg {
-    width: calc(100% - 1vh);
-    height: calc(100% - 1vh);
-    top: .5vh !important;
+    width: calc(100% - 0.71vh);
+    height: calc(100% - 0.71vh);
+    top: .36vh !important;
     opacity: 1 !important;
     fill: rgb(var(--color_r), var(--color_g), var(--color_b));
 }
 
 div.keyboard_key > *:not(h1) {
     margin: 0vh;
-    font-size: 1.67vh;
+    font-size: 1.2vh;
     position: absolute;
 }
 
 div.keyboard_key > h2 {
-    top: 0.278vh;
-    left: 0.278vh;
+    top: 0.2vh;
+    left: 0.2vh;
 }
 
 div.keyboard_key > h3 {
-    bottom: 0.278vh;
-    right: 0.278vh;
+    bottom: 0.2vh;
+    right: 0.2vh;
 }
 
 div.keyboard_key > h5 {
-    top: 0.278vh;
-    right: 0.278vh;
+    top: 0.2vh;
+    right: 0.2vh;
 }
 
 div.keyboard_key > h4, div.keyboard_row > .keyboard_key:last-child > *:not(h1), div.keyboard_row > .keyboard_key:first-child > *:not(h1) {
@@ -145,52 +144,52 @@ div.keyboard_key > h4, div.keyboard_row > .keyboard_key:last-child > *:not(h1), 
 }
 
 div.keyboard_row:not(:nth-child(4)):not(:last-child) > .keyboard_key:last-child, div.keyboard_row > .keyboard_key:first-child {
-    width: 8.33vh;
-    min-width: 8.33vh;
+    width: 5.9vh;
+    min-width: 5.9vh;
 }
 
 div.keyboard_key#keyboard_spacebar {
-    border: 0.19vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
+    border: 0.14vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
 }
 
 div.keyboard_row#row_1 > div.keyboard_enter {
-    border: 0.19vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
+    border: 0.14vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
     border-bottom-right-radius: 0vh;
-    width: 9.72vh;
-    min-width: 9.72vh;
+    width: 6.9vh;
+    min-width: 6.9vh;
 }
 
 div.keyboard_row#row_2 > div.keyboard_enter {
-    border: 0.19vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
+    border: 0.14vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
     border-top-left-radius: 0vh;
-    border-top: 0.3vh solid var(--color_light_black);
-    width: 7.78vh;
-    min-width: 7.78vh;
+    border-top: 0.21vh solid var(--color_light_black);
+    width: 5.6vh;
+    min-width: 5.6vh;
     margin-top: 0vh;
-    height: 6.389vh;
-    top: -0.37vh;
-    right: -1vh;
+    height: 4.6vh;
+    top: -0.26vh;
+    right: -0.71vh;
 }
 
 div.keyboard_row#row_2 > div.keyboard_enter:active, div.keyboard_row#row_2 > div.keyboard_enter.active {
-    border-top: 0.3vh solid rgb(var(--color_r), var(--color_g), var(--color_b));
+    border-top: 0.21vh solid rgb(var(--color_r), var(--color_g), var(--color_b));
 }
 
 div.keyboard_key#keyboard_spacebar {
-    width: 47.68vh;
-    min-width: 47.68vh;
-    height: 3.52vh;
+    width: 34vh;
+    min-width: 34vh;
+    height: 2.5vh;
 }
 
 div.keyboard_row:nth-child(4) > div.keyboard_key:last-child {
     position: relative;
-    top: 0.278vh;
+    top: 0.2vh;
 }
 
 div.keyboard_row:last-child > div.keyboard_key:nth-last-child(-n+3) {
     margin: 0vh;
     position: relative;
-    bottom: 0.278vh;
+    bottom: 0.2vh;
 }
 
 section#keyboard[data-is-caps-lck-on="true"] div.keyboard_key[data-cmd="ESCAPED|-- CAPSLCK: ON"] {
@@ -200,22 +199,22 @@ section#keyboard[data-is-caps-lck-on="true"] div.keyboard_key[data-cmd="ESCAPED|
 
 section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty), section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) {
     position: relative;
-    top: 0.278vh;
-    font-size: 2.4vh;
-    margin: 0vh 0.46vh;
+    top: 0.2vh;
+    font-size: 1.7vh;
+    margin: 0vh 0.33vh;
 }
 
 section#keyboard[data-is-shift-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2, section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 {
-    font-size: 1.85vh;
+    font-size: 1.3vh;
     opacity: 1;
 }
 
 section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) + h1, section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) + h1 {
     margin: 0vh;
-    font-size: 1.67vh;
+    font-size: 1.2vh;
     position: absolute;
-    top: 0.278vh;
-    left: 0.278vh;
+    top: 0.2vh;
+    left: 0.2vh;
 }
 
 section#keyboard[data-is-shift-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 + h1, section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 + h1 {
@@ -230,9 +229,9 @@ section#keyboard[data-is-fn-on="true"] div.keyboard_key[data-cmd="ESCAPED|-- FN:
 
 section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) {
     position: relative;
-    top: 0.278vh;
-    font-size: 2.4vh;
-    margin: 0vh 0.46vh;
+    top: 0.2vh;
+    font-size: 1.7vh;
+    margin: 0vh 0.33vh;
     opacity: 1;
 }
 

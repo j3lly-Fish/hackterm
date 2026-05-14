@@ -4,7 +4,7 @@ section#keyboard {
     align-items: center;
     width: 40vw;
     overflow: hidden;
-    margin-right: 0.5vw;
+    margin-right: 1.5vw;
     position: relative;
     top: -0.66vh;
 }

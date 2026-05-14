@@ -5,7 +5,6 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { exit } from '@tauri-apps/plugin-process';
   import { register, unregisterAll } from '@tauri-apps/plugin-global-shortcut';
-  import 'augmented-ui/augmented.css';
 
   // Stores
   import { settings, shortcuts, loadSettings, saveSettings, type AppSettings, type Shortcut } from '$lib/stores/settings';
@@ -276,6 +275,7 @@
 
 <!-- CSS imports -->
 <svelte:head>
+  <link rel="stylesheet" href="/assets/css/augmented-ui.css" />
   <link rel="stylesheet" href="/assets/css/main.css" />
   <link rel="stylesheet" href="/assets/css/modal.css" />
   <link rel="stylesheet" href="/assets/css/boot_screen.css" />

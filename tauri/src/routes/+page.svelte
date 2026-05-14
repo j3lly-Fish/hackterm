@@ -314,7 +314,7 @@
 
 <!-- Main UI -->
 {#if uiReady && s && theme}
-  <body class="">
+  <div id="ui_root">
     <!-- Left column -->
     <section class="mod_column activated" id="mod_column_left">
       <h3 class="title"><p>PANEL</p><p>SYSTEM</p></h3>
@@ -435,10 +435,31 @@
       title={modalTitle}
       message={modalMsg}
     />
-  </body>
+  </div>
 {/if}
 
 <style>
+  /* Full-viewport layout root — mirrors body{} from main.css but with
+     position:fixed so that:
+       - absolutely-positioned columns (.mod_column) resolve left/right correctly
+       - percentage heights (main_shell 60.3%, etc.) have a definite ancestor */
+  :global(#ui_root) {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-top: 1.85vh;
+    user-select: none;
+    color: rgb(var(--color_r, 0), var(--color_g, 200), var(--color_b, 255));
+  }
+  :global(#ui_root.solidBackground) {
+    background: var(--color_light_black);
+  }
+
   .ssh_overlay_container {
     position: fixed;
     inset: 0;

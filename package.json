@@ -56,8 +56,7 @@
     "npmRebuild": false,
     "asarUnpack": [
       "**/*.node",
-      "**/node_modules/node-pty/**",
-      "**/node_modules/cpu-features/**"
+      "**/node_modules/node-pty/**"
     ],
     "artifactName": "eDEX-UI-${os}-${arch}.${ext}",
     "linux": {

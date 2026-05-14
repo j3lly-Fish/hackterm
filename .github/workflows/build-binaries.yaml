@@ -32,10 +32,12 @@ jobs:
       run: npm ci
     - name: Run prebuild
       run: npm run prebuild-linux
+    - name: Remove cpu-features (optional ssh2 dep, incompatible with node-gyp 9)
+      run: rm -rf prebuild-src/node_modules/cpu-features
     - name: Rebuild node-pty for Electron
       run: |
         ELECTRON_VER=$(node -e "console.log(require('./node_modules/electron/package.json').version)")
-        ./node_modules/.bin/electron-rebuild -f -w node-pty -m prebuild-src --version $ELECTRON_VER --arch x64
+        ./node_modules/.bin/electron-rebuild -f -m prebuild-src --version $ELECTRON_VER --arch x64
     - name: Build AppImage (x64)
       run: ./node_modules/.bin/electron-builder build -l --x64
       env:
@@ -68,10 +70,12 @@ jobs:
       run: npm ci
     - name: Run prebuild
       run: npm run prebuild-darwin
+    - name: Remove cpu-features (optional ssh2 dep, incompatible with node-gyp 9)
+      run: rm -rf prebuild-src/node_modules/cpu-features
     - name: Rebuild node-pty for Electron
       run: |
         ELECTRON_VER=$(node -e "console.log(require('./node_modules/electron/package.json').version)")
-        ./node_modules/.bin/electron-rebuild -f -w node-pty -m prebuild-src --version $ELECTRON_VER --arch x64
+        ./node_modules/.bin/electron-rebuild -f -m prebuild-src --version $ELECTRON_VER --arch x64
     - name: Build macOS DMG
       run: ./node_modules/.bin/electron-builder build -m
       env:
@@ -104,10 +108,13 @@ jobs:
       run: npm ci
     - name: Run prebuild
       run: npm run prebuild-windows
+    - name: Remove cpu-features (optional ssh2 dep, incompatible with node-gyp 9)
+      run: Remove-Item -Recurse -Force prebuild-src\node_modules\cpu-features -ErrorAction SilentlyContinue
+      shell: pwsh
     - name: Rebuild node-pty for Electron
       run: |
         $electronVer = node -e "console.log(require('./node_modules/electron/package.json').version)"
-        node_modules\.bin\electron-rebuild -f -w node-pty -m prebuild-src --version $electronVer --arch x64
+        node_modules\.bin\electron-rebuild -f -m prebuild-src --version $electronVer --arch x64
       shell: pwsh
     - name: Build Windows installer
       run: node_modules\.bin\electron-builder build -w

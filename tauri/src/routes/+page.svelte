@@ -5,6 +5,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { exit } from '@tauri-apps/plugin-process';
   import { register, unregisterAll } from '@tauri-apps/plugin-global-shortcut';
+  import 'augmented-ui/augmented.css';
 
   // Stores
   import { settings, shortcuts, loadSettings, saveSettings, type AppSettings, type Shortcut } from '$lib/stores/settings';
@@ -67,6 +68,9 @@
     window.onerror = (msg, _url, line, col, err) => {
       showError(String(err ?? 'Error'), `${msg}\n\nat line ${line}:${col}`);
     };
+    window.onunhandledrejection = (e) => {
+      showError('Unhandled async error', String(e.reason));
+    };
 
     await loadSettings();
     await invoke('mirror_assets');
@@ -110,15 +114,23 @@
     const curSettings = get(settings)!;
     startPolling();
 
-    await spawnMainTerminal(
-      curSettings.shell,
-      curSettings.cwd,
-      curSettings.port,
-      80,
-      24,
-    );
+    try {
+      await spawnMainTerminal(
+        curSettings.shell,
+        curSettings.cwd,
+        curSettings.port,
+        80,
+        24,
+      );
+    } catch (err) {
+      // Show error but don't block the UI — terminal can be retried
+      showError('Terminal spawn failed', String(err));
+    }
 
-    await registerShortcuts();
+    try {
+      await registerShortcuts();
+    } catch {}
+
     uiReady = true;
   }
 

@@ -36,6 +36,11 @@ section.mod_column > div {
     animation-play-state: paused;
 }
 
+/* Svelte has no JS activation loop — start animations immediately on activated columns */
+section.mod_column.activated > div {
+    animation-play-state: running;
+}
+
 @keyframes fadeIn {
     from {opacity: 0;}
     to {opacity: 1;}

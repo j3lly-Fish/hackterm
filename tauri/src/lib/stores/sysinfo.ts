@@ -60,10 +60,12 @@ export function startPolling() {
     processes.set(v);
   }, 3000);
 
-  // Network interfaces every 2 s
+  // Network interfaces + connections every 2 s
   netPollId = setInterval(async () => {
     const v = await invoke<NetworkInterface[]>('get_network_interfaces').catch(() => []);
     networkInterfaces.set(v);
+    const c = await invoke<NetworkConnection[]>('get_network_connections').catch(() => []);
+    networkConnections.set(c);
   }, 2000);
 
   // Load static info once

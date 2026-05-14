@@ -24,16 +24,18 @@ jobs:
       with:
         path: ~/.cache/electron
         key: ${{ runner.os }}-electron-${{ hashFiles('**/package-lock.json') }}
+    - name: Install cmake
+      run: sudo apt-get install -y cmake
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
     - name: Install root build tools
-      run: npm install
+      run: npm ci
     - name: Run prebuild
       run: npm run prebuild-linux
     - name: Rebuild native modules for Electron
-      run: ./node_modules/.bin/electron-rebuild -f -m prebuild-src
+      run: ./node_modules/.bin/electron-rebuild -f -m prebuild-src --version $(node -e "console.log(require('./node_modules/electron/package.json').version)") --arch x64
     - name: Build AppImage (x64)
       run: ./node_modules/.bin/electron-builder build -l --x64
       env:
@@ -58,16 +60,18 @@ jobs:
       with:
         path: ~/Library/Caches/electron
         key: ${{ runner.os }}-electron-${{ hashFiles('**/package-lock.json') }}
+    - name: Install cmake
+      run: brew install cmake
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
     - name: Install root build tools
-      run: npm install
+      run: npm ci
     - name: Run prebuild
       run: npm run prebuild-darwin
     - name: Rebuild native modules for Electron
-      run: ./node_modules/.bin/electron-rebuild -f -m prebuild-src
+      run: ./node_modules/.bin/electron-rebuild -f -m prebuild-src --version $(node -e "console.log(require('./node_modules/electron/package.json').version)") --arch x64
     - name: Build macOS DMG
       run: ./node_modules/.bin/electron-builder build -m
       env:
@@ -97,11 +101,14 @@ jobs:
       with:
         node-version: '18'
     - name: Install root build tools
-      run: npm install
+      run: npm ci
     - name: Run prebuild
       run: npm run prebuild-windows
     - name: Rebuild native modules for Electron
-      run: node_modules\.bin\electron-rebuild -f -m prebuild-src
+      run: |
+        $electronVersion = node -e "console.log(require('./node_modules/electron/package.json').version)"
+        node_modules\.bin\electron-rebuild -f -m prebuild-src --version $electronVersion --arch x64
+      shell: pwsh
     - name: Build Windows installer
       run: node_modules\.bin\electron-builder build -w
       env:

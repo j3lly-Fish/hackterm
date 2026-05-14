@@ -10,15 +10,25 @@
 
   onMount(async () => {
     const { SmoothieChart, TimeSeries } = await import('smoothie');
+
+    // CSS variables don't resolve inside canvas context — read computed values instead
+    const cs = getComputedStyle(document.documentElement);
+    const r = cs.getPropertyValue('--color_r').trim() || '0';
+    const g = cs.getPropertyValue('--color_g').trim() || '200';
+    const b = cs.getPropertyValue('--color_b').trim() || '255';
+    const lineColor = `rgb(${r},${g},${b})`;
+    const fillColor = `rgba(${r},${g},${b},0.25)`;
+    const gridColor = `rgba(${r},${g},${b},0.12)`;
+
     series = new TimeSeries();
     chart = new SmoothieChart({
       millisPerPixel: 50,
-      grid: { fillStyle: 'transparent', strokeStyle: 'rgba(255,255,255,0.05)', verticalSections: 4 },
+      grid: { fillStyle: 'rgba(0,0,0,0.4)', strokeStyle: gridColor, verticalSections: 4 },
       labels: { disabled: true },
       maxValue: 100,
       minValue: 0,
     });
-    chart.addTimeSeries(series, { strokeStyle: `rgb(var(--color_r, 0), var(--color_g, 200), var(--color_b, 255))`, lineWidth: 2 });
+    chart.addTimeSeries(series, { strokeStyle: lineColor, fillStyle: fillColor, lineWidth: 2 });
     chart.streamTo(canvas, 1000);
 
     unsub = cpuLoad.subscribe(v => {

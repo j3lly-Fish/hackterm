@@ -2,14 +2,15 @@ section.mod_column {
     width: 17%;
     top: 2.5vh;
     min-height: 10%;
-    max-height: 96%;
-    padding: 1.39vh;
-    padding-bottom: 0vh;
+    max-height: 97%;
+    padding: 1.6vh;
+    padding-bottom: 0.5vh;
     box-sizing: border-box;
     position: absolute;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: space-evenly;
+    gap: 0.6vh;
 
     opacity: 0;
     transition: opacity .5s cubic-bezier(0.4, 0, 1, 1);

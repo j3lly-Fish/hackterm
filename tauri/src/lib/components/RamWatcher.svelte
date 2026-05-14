@@ -15,17 +15,26 @@
 
   onMount(async () => {
     const { SmoothieChart, TimeSeries } = await import('smoothie');
+
+    const cs = getComputedStyle(document.documentElement);
+    const r = cs.getPropertyValue('--color_r').trim() || '0';
+    const g = cs.getPropertyValue('--color_g').trim() || '200';
+    const b = cs.getPropertyValue('--color_b').trim() || '255';
+    const lineColor = `rgb(${r},${g},${b})`;
+    const fillColor = `rgba(${r},${g},${b},0.25)`;
+    const gridColor = `rgba(${r},${g},${b},0.12)`;
+
     ramSeries = new TimeSeries();
     swapSeries = new TimeSeries();
     chart = new SmoothieChart({
       millisPerPixel: 50,
-      grid: { fillStyle: 'transparent', strokeStyle: 'rgba(255,255,255,0.05)', verticalSections: 3 },
+      grid: { fillStyle: 'rgba(0,0,0,0.4)', strokeStyle: gridColor, verticalSections: 3 },
       labels: { disabled: true },
       maxValue: 100,
       minValue: 0,
     });
-    chart.addTimeSeries(ramSeries, { strokeStyle: 'rgba(var(--color_r, 0), var(--color_g, 200), var(--color_b, 255), 1)', lineWidth: 2 });
-    chart.addTimeSeries(swapSeries, { strokeStyle: 'rgba(255, 120, 0, 0.8)', lineWidth: 1 });
+    chart.addTimeSeries(ramSeries, { strokeStyle: lineColor, fillStyle: fillColor, lineWidth: 2 });
+    chart.addTimeSeries(swapSeries, { strokeStyle: 'rgba(255,140,0,0.85)', fillStyle: 'rgba(255,140,0,0.15)', lineWidth: 1.5 });
     chart.streamTo(canvas, 1500);
 
     unsub = memory.subscribe(v => {

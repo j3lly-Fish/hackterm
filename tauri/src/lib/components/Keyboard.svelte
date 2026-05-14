@@ -25,31 +25,29 @@
   }
 
   const ICONS: Record<string, string> = {
-    ARROW_UP: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-opacity="1" d="m12 8 5 5h-3v4H10v-4H7z"/><path stroke-linejoin="round" fill="currentColor" fill-opacity="0.45" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
-    ARROW_DOWN: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-opacity="1" d="m12 17-5-5h3V8h4v4h3z"/><path stroke-linejoin="round" fill="currentColor" fill-opacity="0.45" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
-    ARROW_LEFT: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-opacity="1" d="m8 12 5-5v3h4v4h-4v3z"/><path stroke-linejoin="round" fill="currentColor" fill-opacity="0.45" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
-    ARROW_RIGHT: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-opacity="1" d="m16 12-5 5v-3H7v-4h4V7z"/><path stroke-linejoin="round" fill="currentColor" fill-opacity="0.45" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
-    CLOSE: `<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-opacity="1" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
+    ARROW_UP:    `<svg viewBox="0 0 24 24"><path fill="currentColor" d="m12 8 5 5h-3v4H10v-4H7z"/><path fill="currentColor" fill-opacity=".35" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
+    ARROW_DOWN:  `<svg viewBox="0 0 24 24"><path fill="currentColor" d="m12 17-5-5h3V8h4v4h3z"/><path fill="currentColor" fill-opacity=".35" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
+    ARROW_LEFT:  `<svg viewBox="0 0 24 24"><path fill="currentColor" d="m8 12 5-5v3h4v4h-4v3z"/><path fill="currentColor" fill-opacity=".35" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
+    ARROW_RIGHT: `<svg viewBox="0 0 24 24"><path fill="currentColor" d="m16 12-5 5v-3H7v-4h4V7z"/><path fill="currentColor" fill-opacity=".35" d="M4 3h16c1.1 0 1-.1 1 1v16c0 1.1.1 1-1 1H4c-1.1 0-1 .1-1-1V4c0-1.1-.1-1 1-1zm0 1v16h16V4z"/></svg>`,
+    CLOSE:       `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
   };
 
-  // Replace ~~~CTRLSEQn~~~ with the actual escape byte (only index 1 = ESC is used in layouts)
   function expandCtrlSeqs(cmd: string): string {
-    return cmd.replace(/~~~CTRLSEQ(\d+)~~~/g, (_m, n) => {
-      const idx = parseInt(n, 10);
-      if (idx === 1) return '\x1b';
-      return '';
-    });
+    return cmd.replace(/~~~CTRLSEQ(\d+)~~~/g, (_m, n) => parseInt(n, 10) === 1 ? '\x1b' : '');
   }
 
-  // Returns {html, isIcon} for a key name
-  function renderLabel(name: string | undefined): { html: string; isIcon: boolean } {
-    if (!name) return { html: '', isIcon: false };
+  function iconName(name: string): string | null {
     const m = name.match(/^ESCAPED\|-- ICON: (\w+)$/);
-    if (m) {
-      const svg = ICONS[m[1]];
-      return { html: svg ?? m[1], isIcon: true };
-    }
-    return { html: name, isIcon: false };
+    return m ? m[1] : null;
+  }
+
+  function isEscaped(name: string): boolean {
+    return name.startsWith('ESCAPED|-- ');
+  }
+
+  function modifierKey(cmd: string): string | null {
+    const m = cmd?.match(/^ESCAPED\|-- (\w+):/);
+    return m ? m[1].toLowerCase() : null;
   }
 
   let layout: KbLayout | null = null;
@@ -60,12 +58,11 @@
   let capsActive = false;
 
   onMount(async () => {
-    const name = settings.keyboard;
     try {
-      const res = await fetch(`/assets/kb_layouts/${name}.json`);
+      const res = await fetch(`/assets/kb_layouts/${settings.keyboard}.json`);
       layout = await res.json();
     } catch {
-      console.error('Failed to load keyboard layout:', name);
+      console.error('Failed to load keyboard layout:', settings.keyboard);
     }
   });
 
@@ -79,95 +76,128 @@
 
     if (!raw) return;
 
-    // Handle ESCAPED|-- modifier/special commands
     if (raw.startsWith('ESCAPED|-- ')) {
       const inner = raw.slice('ESCAPED|-- '.length);
-      if (inner.startsWith('SHIFT:')) { shiftActive = !shiftActive; return; }
-      if (inner.startsWith('CTRL:')) { ctrlActive = !ctrlActive; return; }
-      if (inner.startsWith('ALT:')) { altActive = !altActive; return; }
-      if (inner.startsWith('FN:')) { fnActive = !fnActive; return; }
-      if (inner.startsWith('CAPSLCK:')) { capsActive = !capsActive; return; }
-      // ICON keys fall through — their cmd is the actual sequence
-      // (name is ESCAPED|-- ICON: X but cmd is the terminal sequence)
+      if (inner.startsWith('SHIFT:'))   { shiftActive = !shiftActive; return; }
+      if (inner.startsWith('CTRL:'))    { ctrlActive  = !ctrlActive;  return; }
+      if (inner.startsWith('ALT:'))     { altActive   = !altActive;   return; }
+      if (inner.startsWith('FN:'))      { fnActive    = !fnActive;    return; }
+      if (inner.startsWith('CAPSLCK:')) { capsActive  = !capsActive;  return; }
       return;
     }
 
-    const cmd = expandCtrlSeqs(raw);
-    onKeyPress(cmd);
+    onKeyPress(expandCtrlSeqs(raw));
 
-    // Auto-release one-shot modifiers
-    if (!key.name?.startsWith('SHIFT') && !key.name?.startsWith('CTRL') &&
-        !key.name?.startsWith('ALT') && !key.name?.startsWith('FN')) {
+    if (!isEscaped(key.name ?? '')) {
       shiftActive = false;
-      ctrlActive = false;
-      altActive = false;
+      ctrlActive  = false;
+      altActive   = false;
     }
   }
 
-  // Arrow/icon keys have name = "ESCAPED|-- ICON: X" and cmd = the actual sequence
   function handleIconKey(key: KeyDef) {
     const raw = key.cmd ?? '';
-    if (!raw) return;
-    const cmd = expandCtrlSeqs(raw);
-    onKeyPress(cmd);
+    if (raw) onKeyPress(expandCtrlSeqs(raw));
   }
+
+  // Determine extra classes for a key
+  function keyClass(key: KeyDef): string {
+    const n = key.name ?? '';
+    if (n === 'ENTER') return 'keyboard_key keyboard_enter';
+    if (n.startsWith('SHIFT')) return 'keyboard_key keyboard_shift';
+    if (n.startsWith('CTRL') || n.startsWith('CTRL')) return 'keyboard_key keyboard_ctrl';
+    if (n === 'CAPS') return 'keyboard_key keyboard_caps';
+    if (n === 'FN') return 'keyboard_key keyboard_fn';
+    return 'keyboard_key';
+  }
+
+  function isActive(key: KeyDef): boolean {
+    const mod = modifierKey(key.cmd ?? '');
+    if (!mod) return false;
+    if (mod === 'shift') return shiftActive;
+    if (mod === 'ctrl') return ctrlActive;
+    if (mod === 'alt') return altActive;
+    if (mod === 'fn') return fnActive;
+    if (mod === 'capslck') return capsActive;
+    return false;
+  }
+
+  const ROWS = ['row_numbers', 'row_1', 'row_2', 'row_3', 'row_space'] as const;
 </script>
 
-<div id="keyboard">
+<section
+  id="keyboard"
+  data-is-shift-on={shiftActive}
+  data-is-caps-lck-on={capsActive}
+  data-is-fn-on={fnActive}
+>
   {#if layout}
-    {#each ['row_numbers', 'row_1', 'row_2', 'row_3', 'row_space'] as rowKey}
+    {#each ROWS as rowKey}
       {#if layout[rowKey as keyof KbLayout]}
-        <div class="kb_row kb_{rowKey}">
+        <div class="keyboard_row" id={rowKey}>
           {#each (layout[rowKey as keyof KbLayout] ?? []) as key}
-            {@const nameStr = key.name ?? ''}
-            {@const isIconKey = nameStr.startsWith('ESCAPED|-- ICON:')}
-            {@const isModifier = nameStr === 'SHIFT' || nameStr === 'CTRL' || nameStr === 'ALT' || nameStr === 'FN' || nameStr === 'CAPS'}
-            {@const isCmdModifier = (key.cmd ?? '').startsWith('ESCAPED|-- ')}
+            {@const name = key.name ?? ''}
+            {@const icon = iconName(name)}
+            {@const isMod = isEscaped(key.cmd ?? '') && !icon}
 
-            {#if isIconKey}
-              {@const iconMatch = nameStr.match(/ICON: (\w+)/)}
-              {@const iconSvg = iconMatch ? (ICONS[iconMatch[1]] ?? iconMatch[1]) : nameStr}
-              <button
-                class="kb_key kb_icon"
-                style={key.width ? `flex: ${key.width}` : ''}
+            {#if icon}
+              <!-- Arrow / close keys -->
+              <div
+                class="keyboard_key"
+                style={key.width ? `flex:${key.width}` : ''}
                 on:click={() => handleIconKey(key)}
-              >{@html iconSvg}</button>
-            {:else if isCmdModifier}
-              {@const modMatch = (key.cmd ?? '').match(/ESCAPED\|-- (\w+):/)}
-              {@const modName = modMatch?.[1]?.toLowerCase() ?? 'mod'}
-              <button
-                class="kb_key kb_{modName}"
-                class:active={
-                  modName === 'shift' ? shiftActive :
-                  modName === 'ctrl' ? ctrlActive :
-                  modName === 'alt' ? altActive :
-                  modName === 'fn' ? fnActive :
-                  modName === 'capslck' ? capsActive : false
-                }
-                style={key.width ? `flex: ${key.width}` : ''}
+                role="button"
+                tabindex="-1"
+              >{@html ICONS[icon] ?? icon}</div>
+            {:else if name === 'ENTER'}
+              <div
+                class="keyboard_key keyboard_enter"
                 on:click={() => handleKey(key)}
-              >{key.name ?? modName.toUpperCase()}</button>
+                role="button"
+                tabindex="-1"
+              ><h1>ENTER</h1></div>
+            {:else if name === 'BACK' || name === 'BACK DELETE'}
+              <div
+                class="keyboard_key keyboard_backspace"
+                on:click={() => handleKey(key)}
+                role="button"
+                tabindex="-1"
+              ><h1>{name}</h1></div>
+            {:else if isMod}
+              <div
+                class="keyboard_key"
+                class:active={isActive(key)}
+                data-cmd={key.cmd}
+                style={key.width ? `flex:${key.width}` : ''}
+                on:click={() => handleKey(key)}
+                role="button"
+                tabindex="-1"
+              ><h1>{name}</h1></div>
+            {:else if name === ' ' || key.cmd === ' '}
+              <div
+                class="keyboard_key"
+                id="keyboard_spacebar"
+                on:click={() => handleKey(key)}
+                role="button"
+                tabindex="-1"
+              ></div>
             {:else}
-              <button
-                class="kb_key"
-                style={key.width ? `flex: ${key.width}` : ''}
+              <div
+                class={keyClass(key)}
+                style={key.width ? `flex:${key.width}` : ''}
                 on:click={() => handleKey(key)}
+                role="button"
+                tabindex="-1"
               >
-                <span class="kb_main">
-                  {shiftActive || capsActive
-                    ? (key.shift_name ?? key.name ?? '')
-                    : (key.name ?? '')}
-                </span>
-                {#if key.shift_name && key.shift_name !== key.name}
-                  <span class="kb_shift_label">{key.shift_name}</span>
+                {#if key.shift_name && key.shift_name !== name}
+                  <h2>{key.shift_name}</h2>
                 {/if}
-              </button>
+                <h1>{shiftActive || capsActive ? (key.shift_name ?? name) : name}</h1>
+              </div>
             {/if}
           {/each}
         </div>
       {/if}
     {/each}
-  {:else}
-    <p>Loading keyboard…</p>
   {/if}
-</div>
+</section>

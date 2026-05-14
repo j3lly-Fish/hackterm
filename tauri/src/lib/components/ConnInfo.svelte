@@ -23,15 +23,22 @@
 
   onMount(async () => {
     const { SmoothieChart, TimeSeries } = await import('smoothie');
+
+    const cs = getComputedStyle(document.documentElement);
+    const r = cs.getPropertyValue('--color_r').trim() || '0';
+    const g = cs.getPropertyValue('--color_g').trim() || '200';
+    const b = cs.getPropertyValue('--color_b').trim() || '255';
+    const gridColor = `rgba(${r},${g},${b},0.12)`;
+
     rxSeries = new TimeSeries();
     txSeries = new TimeSeries();
     chart = new SmoothieChart({
       millisPerPixel: 50,
-      grid: { fillStyle: 'transparent', strokeStyle: 'rgba(255,255,255,0.05)', verticalSections: 3 },
+      grid: { fillStyle: 'rgba(0,0,0,0.4)', strokeStyle: gridColor, verticalSections: 3 },
       labels: { disabled: true },
     });
-    chart.addTimeSeries(rxSeries, { strokeStyle: 'rgba(0,200,255,0.9)', lineWidth: 2 });
-    chart.addTimeSeries(txSeries, { strokeStyle: 'rgba(255,100,0,0.8)', lineWidth: 1 });
+    chart.addTimeSeries(rxSeries, { strokeStyle: `rgb(${r},${g},${b})`, fillStyle: `rgba(${r},${g},${b},0.2)`, lineWidth: 2 });
+    chart.addTimeSeries(txSeries, { strokeStyle: 'rgba(255,140,0,0.9)', fillStyle: 'rgba(255,140,0,0.15)', lineWidth: 1.5 });
     chart.streamTo(canvas, 2000);
 
     unsub = networkInterfaces.subscribe(ifaces => {
